@@ -1,0 +1,85 @@
+spring:
+  servlet:
+    multipart:
+      max-file-size: 50MB
+  config:
+    import: optional:file:.env[.properties]
+    activate:
+      on-profile: dev
+  datasource:
+    url: ${MYSQL_MASTER_URL}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${MYSQL_USER}
+    password: ${MYSQL_PASSWORD}
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+      naming:
+        implicit-strategy: org.hibernate.boot.model.naming.ImplicitNamingStrategyComponentPathImpl
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+
+  data:
+    redis:
+      host: redis
+      port: 6379
+
+logging:
+  level:
+    org:
+      springframework:
+        web: DEBUG
+    com:
+      example: DEBUG
+
+jwt:
+  secret:
+    key: ${JWT_SECRET_KEY}
+  issuer: ${JWT_ISSUER}
+  salt: ${JWT_SALT}
+  access-token:
+    expiretime: ${DEV_JWT_ACCESS_TOKEN_EXPIRETIME}
+  refresh-token:
+    expiretime: ${DEV_JWT_REFRESH_TOKEN_EXPIRETIME}
+
+kakao:
+  secret:
+    key: ${KAKAO_SECRET_KEY}
+  loginurl: ${KAKAO_LOGIN_URL}
+  logouturl: ${KAKAO_LOGOUT_URL}
+
+cloud:
+  aws:
+    credentials:
+      access-key: ${AWS_S3_ACCESS_KEY}
+      secret-key: ${AWS_S3_SECRET_KEY}
+    region:
+      static: ${AWS_S3_BUCKET_REGION}
+    stack:
+      auto: false
+    s3:
+      bucket: ${AWS_S3_BUCKET_NAME}
+
+flask:
+  verifyurl: ${FLASK_VERIFY_URL}
+  progressavgurl: ${FLASK_PROGRESS_AVG_URL}
+
+notification:
+  mattermost:
+    enabled: true # mmSender를 사용할 지 여부, false면 알림이 오지 않는다
+    webhook-url: ${MATTERMOST_WEBHOOK_URL} # 위의 Webhook URL을 기입
+    color: ${MATTERMOST_COLOR} # attachment에 왼쪽 사이드 컬러. default=red
+    author-name: ${MATTERMOST_AUTHOR_NAME} # attachment의 상단에 나오는 이름
+    author-icon: ${MATTERMOST_AUTHOR_ICON} # author-icon 왼쪽에 나올 아이콘의 url링크
+    footer: # attachment에 하단에 나올 부분. default=현재 시간
+
+scheduled-task:
+  change-planet-status-cron: 0 0 0 * * ?
+  ban-if-last-verification-older-than-three-days: 0 5 0 * * ?
+  planet-complete-destroy: 0 10 0 * * ?
+  member-progress-calc: 0 15 0 * * ?
