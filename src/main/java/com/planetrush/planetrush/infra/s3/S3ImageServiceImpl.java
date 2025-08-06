@@ -1,6 +1,5 @@
 package com.planetrush.planetrush.infra.s3;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.UUID;
@@ -94,29 +93,26 @@ public class S3ImageServiceImpl implements S3ImageService {
 		if (file.isEmpty()) {
 			throw new S3Exception("Image file is empty");
 		}
-		String fileName = dirName + memberId + "/" + UUID.randomUUID() + file.getOriginalFilename();
+		String fileName = makeUniqueRandomFileName(file, dirName, memberId);
 		try (InputStream inputStream = file.getInputStream()) {
 			ObjectMetadata metadata = new ObjectMetadata();
 			metadata.setContentLength(file.getSize());
 			amazonS3.putObject(new PutObjectRequest(bucket, fileName, inputStream, metadata)
 				.withCannedAcl(CannedAccessControlList.PublicRead));
 		} catch (IOException e) {
-			log.error(e.getMessage(), e);
-			throw new S3Exception("error: MultipartFile -> S3 upload fail");
+			throw new S3Exception("S3 upload fail");
 		}
 		return amazonS3.getUrl(bucket, fileName).toString();
 	}
 
-	/**
-	 * S3로 업로드 요청 후 url 반환
-	 * @param uploadFile 파일
-	 * @param fileName 파일명
-	 * @return 이미지 url
-	 */
-	private String putS3(File uploadFile, String fileName) {
-		amazonS3.putObject(new PutObjectRequest(bucket, fileName, uploadFile).withCannedAcl(
-			CannedAccessControlList.PublicRead));
-		return amazonS3.getUrl(bucket, fileName).toString();
+	private static String makeUniqueRandomFileName(MultipartFile file, String dirName, Long memberId) {
+		StringBuffer sb = new StringBuffer();
+		return sb.append(dirName)
+			.append(memberId)
+			.append("/")
+			.append(UUID.randomUUID())
+			.append(file.getOriginalFilename())
+			.toString();
 	}
 
 }
