@@ -16,6 +16,7 @@ import com.planetrush.planetrush.planet.domain.Category;
 import com.planetrush.planetrush.planet.domain.Planet;
 import com.planetrush.planetrush.planet.domain.Resident;
 import com.planetrush.planetrush.planet.domain.image.DefaultPlanetImg;
+import com.planetrush.planetrush.planet.exception.InvalidStartDateException;
 import com.planetrush.planetrush.planet.exception.PlanetNotFoundException;
 import com.planetrush.planetrush.planet.exception.ResidentAlreadyExistsException;
 import com.planetrush.planetrush.planet.exception.ResidentNotFoundException;
@@ -338,6 +339,14 @@ public class PlanetServiceImpl implements PlanetService {
 	@Transactional
 	@Override
 	public void registerPlanet(RegisterPlanetDto dto) {
+		Member member = memberRepository.findById(dto.getMemberId())
+			.orElseThrow(() -> new MemberNotFoundException("Member not found with ID: " + dto.getMemberId()));
+		if(ChronoUnit.DAYS.between(LocalDate.now(), dto.getStartDate()) > 14) {
+			throw new InvalidStartDateException("Start date must be within 14 days from today.");
+		}
+		if(residentRepositoryCustom.getReadyAndInProgressResidents(member) >= 9) {
+			throw new ResidentOverflowException("resident count overflow");
+		}
 		Planet planet = planetRepository.save(Planet.builder()
 			.name(dto.getName())
 			.category(Category.valueOf(dto.getCategory()))
@@ -349,8 +358,6 @@ public class PlanetServiceImpl implements PlanetService {
 			.planetImg(dto.getPlanetImgUrl())
 			.standardVerificationImg(dto.getStandardVerificationImgUrl())
 			.build());
-		Member member = memberRepository.findById(dto.getMemberId())
-			.orElseThrow(() -> new MemberNotFoundException("Member not found with ID: " + dto.getMemberId()));
 		residentRepository.save(Resident.isCreator(member, planet));
 	}
 }
