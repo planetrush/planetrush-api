@@ -16,7 +16,7 @@ import com.planetrush.planetrush.planet.exception.InvalidStartDateException;
 import com.planetrush.planetrush.planet.exception.ResidentOverflowException;
 import com.planetrush.planetrush.planet.facade.dto.RegisterPlanetFacadeDto;
 import com.planetrush.planetrush.planet.repository.custom.ResidentRepositoryCustom;
-import com.planetrush.planetrush.planet.service.RegisterPlanetService;
+import com.planetrush.planetrush.planet.service.PlanetService;
 import com.planetrush.planetrush.planet.service.dto.RegisterPlanetDto;
 
 import lombok.RequiredArgsConstructor;
@@ -27,7 +27,7 @@ import lombok.RequiredArgsConstructor;
 public class RegisterPlanetFacade {
 
 	private final S3ImageService s3ImageService;
-	private final RegisterPlanetService registerPlanetService;
+	private final PlanetService planetService;
 	private final ResidentRepositoryCustom residentRepositoryCustom;
 	private final MemberRepository memberRepository;
 
@@ -51,7 +51,7 @@ public class RegisterPlanetFacade {
 		String planetImgUrl = customPlanetImg == null ? dto.getPlanetImgUrl() :
 			uploadCustomPlanetImg(customPlanetImg, dto.getMemberId());
 		String stdVerificationImgUrl = uploadStdVerificationImg(stdVerificationImg, dto.getMemberId());
-		registerPlanetService.registerPlanet(RegisterPlanetDto.builder()
+		planetService.registerPlanet(RegisterPlanetDto.builder()
 			.name(dto.getName())
 			.memberId(dto.getMemberId())
 			.startDate(dto.getStartDate())

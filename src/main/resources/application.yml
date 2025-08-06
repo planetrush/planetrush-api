@@ -5,15 +5,11 @@ spring:
   config:
     import: optional:file:.env[.properties]
   datasource:
-    url: jdbc:h2:file:~/testdb;MODE=MySQL
-#    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=MySQL
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
+    url: jdbc:mysql://localhost:3306/planetrush?serverTimezone=UTC&useUnicode=yes&characterEncoding=UTF-8
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: root
+
   data:
     redis:
       host: localhost
@@ -65,6 +61,7 @@ cloud:
 
 flask:
   verifyurl: ${FLASK_VERIFY_URL}
+  progressavgurl: ${FLASK_PROGRESS_AVG_URL}
 
 notification:
   mattermost:
