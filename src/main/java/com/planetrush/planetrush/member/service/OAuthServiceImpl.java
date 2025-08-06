@@ -1,5 +1,6 @@
 package com.planetrush.planetrush.member.service;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,14 +17,17 @@ import com.planetrush.planetrush.member.exception.MemberNotFoundException;
 import com.planetrush.planetrush.member.repository.MemberRepository;
 import com.planetrush.planetrush.member.repository.ProgressAvgRepository;
 import com.planetrush.planetrush.member.service.dto.LoginDto;
+import com.planetrush.planetrush.member.service.dto.ReissueDto;
 
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 @Transactional
 @Service
-public class AuthServiceImpl implements AuthService {
+public class OAuthServiceImpl implements OAuthService {
 
+	@Value("${jwt.refresh-token.expiretime}")
+	private int REFRESH_TOKEN_EXPIRATION_TIME;
 	private final KakaoUtil kakaoUtil;
 	private final JwtTokenProvider jwtTokenProvider;
 	private final MemberRepository memberRepository;
@@ -90,6 +94,22 @@ public class AuthServiceImpl implements AuthService {
 		Member member = memberRepository.findById(memberId)
 			.orElseThrow(() -> new MemberNotFoundException("Member not found with ID: " + memberId));
 		member.withdrawn();
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public ReissueDto reissueToken(String refreshToken) {
+		Long memberId = jwtTokenProvider.getMemberIdFromRefreshToken(refreshToken);
+		jwtTokenProvider.deleteRefreshToken(refreshToken);
+
+		JwtToken newToken = jwtTokenProvider.createToken(memberId);
+
+		return ReissueDto.builder()
+			.accessToken(newToken.getAccessToken())
+			.refreshToken(newToken.getRefreshToken())
+			.build();
 	}
 
 }

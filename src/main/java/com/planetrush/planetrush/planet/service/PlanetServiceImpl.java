@@ -12,16 +12,26 @@ import org.springframework.transaction.annotation.Transactional;
 import com.planetrush.planetrush.member.domain.Member;
 import com.planetrush.planetrush.member.exception.MemberNotFoundException;
 import com.planetrush.planetrush.member.repository.MemberRepository;
+import com.planetrush.planetrush.planet.domain.Category;
 import com.planetrush.planetrush.planet.domain.Planet;
 import com.planetrush.planetrush.planet.domain.Resident;
+import com.planetrush.planetrush.planet.domain.image.DefaultPlanetImg;
 import com.planetrush.planetrush.planet.exception.PlanetNotFoundException;
+import com.planetrush.planetrush.planet.exception.ResidentAlreadyExistsException;
+import com.planetrush.planetrush.planet.exception.ResidentNotFoundException;
+import com.planetrush.planetrush.planet.exception.ResidentOverflowException;
+import com.planetrush.planetrush.planet.repository.DefaultPlanetImgRepository;
 import com.planetrush.planetrush.planet.repository.PlanetRepository;
+import com.planetrush.planetrush.planet.repository.ResidentRepository;
 import com.planetrush.planetrush.planet.repository.custom.PlanetRepositoryCustom;
 import com.planetrush.planetrush.planet.repository.custom.ResidentRepositoryCustom;
+import com.planetrush.planetrush.planet.service.dto.GetDefaultPlanetImgDto;
 import com.planetrush.planetrush.planet.service.dto.GetMainPlanetListDto;
 import com.planetrush.planetrush.planet.service.dto.GetMyPlanetListDto;
 import com.planetrush.planetrush.planet.service.dto.OngoingPlanetDto;
 import com.planetrush.planetrush.planet.service.dto.PlanetDetailDto;
+import com.planetrush.planetrush.planet.service.dto.PlanetSubscriptionDto;
+import com.planetrush.planetrush.planet.service.dto.RegisterPlanetDto;
 import com.planetrush.planetrush.planet.service.dto.ResidentDto;
 import com.planetrush.planetrush.planet.service.dto.SearchCond;
 import com.planetrush.planetrush.planet.service.vo.GetMainPlanetListVo;
@@ -32,16 +42,33 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@RequiredArgsConstructor
-@Transactional(readOnly = true)
 @Service
-public class GetPlanetServiceImpl implements GetPlanetService {
+@Transactional(readOnly = true)
+@RequiredArgsConstructor
+public class PlanetServiceImpl implements PlanetService {
 
 	private final MemberRepository memberRepository;
 	private final PlanetRepository planetRepository;
-	private final ResidentRepositoryCustom residentRepositoryCustom;
+	private final ResidentRepository residentRepository;
+	private final DefaultPlanetImgRepository defaultPlanetImgRepository;
+
 	private final PlanetRepositoryCustom planetRepositoryCustom;
+	private final ResidentRepositoryCustom residentRepositoryCustom;
 	private final VerificationRecordRepositoryCustom verificationRecordRepositoryCustom;
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public List<GetDefaultPlanetImgDto> getAllImgUrls() {
+		List<DefaultPlanetImg> images = defaultPlanetImgRepository.findAll();
+		return images.stream()
+			.map(img -> GetDefaultPlanetImgDto.builder()
+				.imgId(img.getId())
+				.imgUrl(img.getImgUrl())
+				.build())
+			.toList();
+	}
 
 	/**
 	 * {@inheritDoc}
@@ -261,5 +288,69 @@ public class GetPlanetServiceImpl implements GetPlanetService {
 			.status(vo.getStatus())
 			.lastDay(isLastDay)
 			.build();
+	}
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * 이 메서드는 데이터베이스에 입주기록을 등록합니다.
+	 * @param dto 사용자의 id, 행성의 id 등을 포함합니다.
+	 */
+	@Transactional
+	@Override
+	public void registerResident(PlanetSubscriptionDto dto) {
+		Member member = memberRepository.findById(dto.getMemberId())
+			.orElseThrow(() -> new MemberNotFoundException("Member not found with ID: " + dto.getMemberId()));
+		Planet planet = planetRepository.findByIdForUpdate(dto.getPlanetId())
+			.orElseThrow(() -> new PlanetNotFoundException("Planet not found with ID: " + dto.getPlanetId()));
+		if(residentRepositoryCustom.getReadyAndInProgressResidents(member) >= 9) {
+			throw new ResidentOverflowException("resident count overflow");
+		}
+		residentRepository.findByMemberIdAndPlanetId(member.getId(), planet.getId())
+			.ifPresent(resident -> {
+				throw new ResidentAlreadyExistsException("resident already exists: " + resident.getId());
+			});
+		planet.addParticipant();
+		residentRepository.save(Resident.isNotCreator(member, planet));
+	}
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * 이 메서드는 데이터베이스에서 입주 정보를 삭제합니다.
+	 * @param dto 사용자의 id, 행성의 id 등을 포함합니다.
+	 */
+	@Transactional
+	@Override
+	public void deleteResident(PlanetSubscriptionDto dto) {
+		Resident resident = residentRepository.findByMemberIdAndPlanetId(dto.getMemberId(), dto.getPlanetId())
+			.orElseThrow(() -> new ResidentNotFoundException(
+				"Resident not found member id: " + dto.getMemberId() + " and planet id: " + dto.getPlanetId()));
+		Planet planet = planetRepository.findById(dto.getPlanetId())
+			.orElseThrow(() -> new PlanetNotFoundException("Planet not found with ID: " + dto.getPlanetId()));
+		planet.participantLeave();
+		residentRepository.delete(resident);
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Transactional
+	@Override
+	public void registerPlanet(RegisterPlanetDto dto) {
+		Planet planet = planetRepository.save(Planet.builder()
+			.name(dto.getName())
+			.category(Category.valueOf(dto.getCategory()))
+			.content(dto.getContent())
+			.startDate(dto.getStartDate())
+			.endDate(dto.getEndDate())
+			.maxParticipants(dto.getMaxParticipants())
+			.verificationCond(dto.getAuthCond())
+			.planetImg(dto.getPlanetImgUrl())
+			.standardVerificationImg(dto.getStandardVerificationImgUrl())
+			.build());
+		Member member = memberRepository.findById(dto.getMemberId())
+			.orElseThrow(() -> new MemberNotFoundException("Member not found with ID: " + dto.getMemberId()));
+		residentRepository.save(Resident.isCreator(member, planet));
 	}
 }
