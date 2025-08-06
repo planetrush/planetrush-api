@@ -9,7 +9,6 @@ import com.planetrush.planetrush.infra.s3.S3ImageService;
 import com.planetrush.planetrush.infra.s3.dto.FileMetaInfo;
 import com.planetrush.planetrush.verification.exception.AlreadyVerifiedException;
 import com.planetrush.planetrush.verification.facade.dto.VerifyChallengeDto;
-import com.planetrush.planetrush.verification.service.GetTodayRecordService;
 import com.planetrush.planetrush.verification.service.VerificationService;
 import com.planetrush.planetrush.verification.service.dto.FlaskResponseDto;
 import com.planetrush.planetrush.verification.service.dto.VerificationResultDto;
@@ -23,7 +22,6 @@ public class VerificationFacade {
 
 	private final S3ImageService s3ImageService;
 	private final VerificationService verificationService;
-	private final GetTodayRecordService getTodayRecordService;
 	private final FlaskUtil flaskUtil;
 
 	/**
@@ -34,7 +32,7 @@ public class VerificationFacade {
 	 * @return 인증 여부, 유사도
 	 */
 	public VerifyChallengeDto saveImgAndVerifyChallenge(MultipartFile verificationImg, Long memberId, Long planetId) {
-		if(getTodayRecordService.getTodayRecord(memberId, planetId)) {
+		if(verificationService.getTodayRecord(memberId, planetId)) {
 			throw new AlreadyVerifiedException("Member: " + memberId + ", Planet : " + planetId + " already verified today");
 		}
 		FileMetaInfo fileMetaInfo = s3ImageService.uploadVerificationImg(verificationImg, memberId);
