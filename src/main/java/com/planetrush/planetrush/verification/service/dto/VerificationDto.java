@@ -7,11 +7,10 @@ import lombok.Getter;
 @Builder
 @Getter
 @AllArgsConstructor
-public class VerificationResultDto {
+public class VerificationDto {
 
-	private boolean verified;
-	private double similarityScore;
-	private String imgUrl;
+	private String standardImgUrl;
+	private String userImgUrl;
 	private Long planetId;
 	private Long memberId;
 

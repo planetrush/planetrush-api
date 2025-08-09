@@ -1,7 +1,6 @@
 package com.planetrush.planetrush.infra.flask.util;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -10,11 +9,12 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.RequestEntity;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
-import com.planetrush.planetrush.infra.flask.exception.FlaskServerNotConnectedException;
+import com.planetrush.planetrush.infra.flask.exception.FlaskConnectionFailedException;
 import com.planetrush.planetrush.infra.flask.exception.ImageSimilarityCheckErrorException;
 import com.planetrush.planetrush.infra.flask.exception.InvalidImageUrlCountException;
 import com.planetrush.planetrush.infra.flask.exception.ProgressAvgNotFoundException;
@@ -23,12 +23,10 @@ import com.planetrush.planetrush.member.service.dto.GetMyProgressAvgDto;
 import com.planetrush.planetrush.verification.service.dto.FlaskResponseDto;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
-@RequiredArgsConstructor
 @Component
-public class FlaskUtil {
+@RequiredArgsConstructor
+public class FlaskApiClient {
 
 	@Value("${flask.verifyurl}")
 	private String verifyUrl;
@@ -36,6 +34,12 @@ public class FlaskUtil {
 	private String progressAvgUrl;
 	private final RestTemplate restTemplate;
 
+	@Retryable(
+		retryFor = FlaskConnectionFailedException.class,
+		noRetryFor = {InvalidImageUrlCountException.class, ImageSimilarityCheckErrorException.class},
+		maxAttempts = 5,
+		backoff = @Backoff(delay = 1000, multiplier = 2.0, maxDelay = 17000, random = true)
+	)
 	public FlaskResponseDto verifyChallengeImg(String standardImgUrl, String targetImgUrl) {
 		try {
 			HttpHeaders headers = new HttpHeaders();
@@ -58,17 +62,21 @@ public class FlaskUtil {
 			if (code.equals("8000")) {
 				throw new InvalidImageUrlCountException("The number of image URLs must be exactly two");
 			} else if (code.equals("8001")) {
-				throw new ImageSimilarityCheckErrorException(
-					"An error occurred during the image similarity check process");
+				throw new ImageSimilarityCheckErrorException("An error occurred during the image similarity check process");
 			}
 			return res.getData();
-		} catch (URISyntaxException | RestClientException e) {
-			throw new FlaskServerNotConnectedException("Flask Server Not Connected");
+		} catch (Exception e) {
+			throw new FlaskConnectionFailedException();
 		}
 	}
 
+	@Retryable(
+		retryFor = FlaskConnectionFailedException.class,
+		noRetryFor = {InvalidImageUrlCountException.class, ImageSimilarityCheckErrorException.class},
+		maxAttempts = 5,
+		backoff = @Backoff(delay = 1000, multiplier = 2.0, maxDelay = 17000, random = true)
+	)
 	public GetMyProgressAvgDto getMyProgressAvg(Long memberId) {
-		log.info("Flask API Call");
 		try {
 			HttpHeaders headers = new HttpHeaders();
 			headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
@@ -86,9 +94,8 @@ public class FlaskUtil {
 				throw new ProgressAvgNotFoundException("Progress Average not found");
 			}
 			return res.getData();
-		} catch (URISyntaxException | RestClientException e) {
-			log.info("예외={}", e);
-			throw new FlaskServerNotConnectedException("Flask server not connected");
+		} catch (Exception e) {
+			throw new FlaskConnectionFailedException();
 		}
 	}
 

@@ -7,7 +7,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.planetrush.planetrush.infra.flask.util.FlaskUtil;
+import com.planetrush.planetrush.infra.flask.util.FlaskApiClient;
 import com.planetrush.planetrush.member.domain.ChallengeHistory;
 import com.planetrush.planetrush.member.domain.Member;
 import com.planetrush.planetrush.member.exception.MemberNotFoundException;
@@ -26,7 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 @Transactional(readOnly = true)
 public class MemberServiceImpl implements MemberService {
 
-	private final FlaskUtil flaskUtil;
+	private final FlaskApiClient flaskApiClient;
 	private final MemberRepository memberRepository;
 	private final ChallengeHistoryRepositoryCustom challengeHistoryRepositoryCustom;
 
@@ -59,7 +59,7 @@ public class MemberServiceImpl implements MemberService {
 	public GetMyProgressAvgDto getMyProgressAvgPer(Long memberId) {
 		Member member = memberRepository.findById(memberId)
 			.orElseThrow(() -> new MemberNotFoundException("Member not found with ID: " + memberId));
-		return flaskUtil.getMyProgressAvg(memberId);
+		return flaskApiClient.getMyProgressAvg(memberId);
 	}
 
 	/**
