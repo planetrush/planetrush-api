@@ -4,8 +4,8 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
+import com.planetrush.planetrush.infra.flask.res.FlaskResponseDto;
 import com.planetrush.planetrush.infra.flask.util.FlaskApiClient;
-import com.planetrush.planetrush.verification.service.dto.FlaskResponseDto;
 import com.planetrush.planetrush.verification.service.dto.VerificationDto;
 
 import lombok.RequiredArgsConstructor;

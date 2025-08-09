@@ -19,8 +19,8 @@ import com.planetrush.planetrush.infra.flask.exception.ImageSimilarityCheckError
 import com.planetrush.planetrush.infra.flask.exception.InvalidImageUrlCountException;
 import com.planetrush.planetrush.infra.flask.exception.ProgressAvgNotFoundException;
 import com.planetrush.planetrush.infra.flask.res.FlaskResponse;
+import com.planetrush.planetrush.infra.flask.res.FlaskResponseDto;
 import com.planetrush.planetrush.member.service.dto.GetMyProgressAvgDto;
-import com.planetrush.planetrush.verification.service.dto.FlaskResponseDto;
 
 import lombok.RequiredArgsConstructor;
 
