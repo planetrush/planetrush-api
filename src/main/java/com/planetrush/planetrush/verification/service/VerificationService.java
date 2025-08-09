@@ -1,6 +1,6 @@
 package com.planetrush.planetrush.verification.service;
 
-import com.planetrush.planetrush.verification.service.dto.VerificationResultDto;
+import com.planetrush.planetrush.verification.event.SaveVerificationResultEvent;
 
 public interface VerificationService {
 
@@ -13,9 +13,9 @@ public interface VerificationService {
 
 	/**
 	 * 사진 url과 유사도, 인증 여부를 저장합니다.
-	 * @param dto 사진 url과 유사도, 인증 여부, 사용자 고유 id, 행성의 고유 id
+	 * @param event 유사도 측정 후 결과가 담긴 이벤트
 	 */
-	void saveVerificationResult(VerificationResultDto dto);
+	void saveVerificationResult(SaveVerificationResultEvent event);
 
 	/**
 	 * 오늘 유저가 행성에 대한 인증 여부를 반환합니다.
@@ -25,4 +25,5 @@ public interface VerificationService {
 	 */
 	boolean getTodayRecord(Long memberId, Long planetId);
 
+	void verifyTodayChallenge(Long memberId, Long planetId, String targetImgUrl);
 }

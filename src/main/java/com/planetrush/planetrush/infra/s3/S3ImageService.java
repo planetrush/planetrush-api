@@ -28,7 +28,8 @@ public interface S3ImageService {
 	 * @param memberId 유저의 고유 id
 	 * @return 저장된 이미지 파일에 대한 정보
 	 */
-	FileMetaInfo uploadVerificationImg(MultipartFile file, Long memberId);
+	FileMetaInfo
+	uploadVerificationImg(MultipartFile file, Long memberId);
 
 	/**
 	 * 파일 확장자 추출

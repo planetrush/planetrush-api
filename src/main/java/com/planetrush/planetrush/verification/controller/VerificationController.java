@@ -12,7 +12,6 @@ import com.planetrush.planetrush.core.aop.annotation.RequireJwtToken;
 import com.planetrush.planetrush.core.aop.member.MemberContext;
 import com.planetrush.planetrush.core.template.response.BaseResponse;
 import com.planetrush.planetrush.verification.facade.VerificationFacade;
-import com.planetrush.planetrush.verification.facade.dto.VerifyChallengeDto;
 
 import lombok.RequiredArgsConstructor;
 
@@ -31,14 +30,13 @@ public class VerificationController {
 	 */
 	@RequireJwtToken
 	@PostMapping("/verify/planets/{planet-id}")
-	public ResponseEntity<BaseResponse<VerifyChallengeDto>> verifyChallenge(
+	public ResponseEntity<BaseResponse<?>> verifyChallenge(
 		@RequestParam("verificationImg") MultipartFile verificationImg,
 		@PathVariable("planet-id") Long planetId
 	) {
 		Long memberId = MemberContext.getMemberId();
-		return ResponseEntity.ok(
-			BaseResponse.ofSuccess(
-				verificationFacade.saveImgAndVerifyChallenge(verificationImg, memberId, planetId)));
+		verificationFacade.saveImgAndVerifyChallenge(verificationImg, memberId, planetId);
+		return ResponseEntity.ok(BaseResponse.ofSuccess());
 	}
 
 }

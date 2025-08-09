@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import com.planetrush.planetrush.core.mattermost.NotificationManager;
 import com.planetrush.planetrush.core.template.response.BaseResponse;
 import com.planetrush.planetrush.core.template.response.ResponseCode;
-import com.planetrush.planetrush.infra.flask.exception.FlaskServerNotConnectedException;
+import com.planetrush.planetrush.infra.flask.exception.FlaskConnectionFailedException;
 import com.planetrush.planetrush.infra.flask.exception.ImageSimilarityCheckErrorException;
 import com.planetrush.planetrush.infra.flask.exception.InvalidImageUrlCountException;
 import com.planetrush.planetrush.infra.flask.exception.ProgressAvgNotFoundException;
@@ -26,9 +26,9 @@ public class FlaskExceptionHandler {
 
 	private final NotificationManager nm;
 
-	@ExceptionHandler(FlaskServerNotConnectedException.class)
+	@ExceptionHandler(FlaskConnectionFailedException.class)
 	public ResponseEntity<BaseResponse<Object>> handleFlaskServerNotConnectedException(
-		FlaskServerNotConnectedException e,
+		FlaskConnectionFailedException e,
 		HttpServletRequest req) {
 		log.info(e.getMessage());
 		nm.sendNotification(e, req.getRequestURI(), getParams(req));

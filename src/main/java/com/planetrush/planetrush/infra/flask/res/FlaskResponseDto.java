@@ -1,4 +1,4 @@
-package com.planetrush.planetrush.verification.service.dto;
+package com.planetrush.planetrush.infra.flask.res;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
