@@ -1,4 +1,4 @@
-package com.planetrush.planetrush.core.config.app;
+package com.planetrush.planetrush.core.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
