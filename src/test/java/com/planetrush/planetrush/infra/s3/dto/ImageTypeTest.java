@@ -63,7 +63,7 @@ class ImageTypeTest {
 		"standard,456,test-image.PNG,.png",
 		"verification,789,test-image.JPG,.jpg"
 	})
-	void buildPath_formatAndLowercaseExt(String code, Long memberId, String originalFileName, String expectedExt) {
+	void buildPath_should_pass_when_path_pattern_matched(String code, Long memberId, String originalFileName, String expectedExt) {
 		// GIVEN
 		final ImageType it = ImageType.of(code);
 		final String path = it.buildPath(memberId, originalFileName);
