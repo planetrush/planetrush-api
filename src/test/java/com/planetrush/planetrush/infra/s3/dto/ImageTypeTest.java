@@ -57,6 +57,7 @@ class ImageTypeTest {
 		assertThat(pathSet.size()).isEqualTo(codes.size() * MAX);
 	}
 
+	@DisplayName("path의 패턴이 {디렉토리/회원ID/현재시간_UUID/원본파일명}과 일치해야 한다")
 	@ParameterizedTest
 	@CsvSource({
 		"planet,123,test-image.JPG,.jpg",
