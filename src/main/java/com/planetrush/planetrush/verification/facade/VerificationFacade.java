@@ -4,8 +4,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.planetrush.planetrush.infra.s3.S3ImageService;
-import com.planetrush.planetrush.infra.s3.dto.FileMetaInfo;
+import com.planetrush.planetrush.aws.service.S3ImageService;
+import com.planetrush.planetrush.aws.service.dto.FileMetaInfo;
 import com.planetrush.planetrush.verification.service.VerificationService;
 
 import lombok.RequiredArgsConstructor;

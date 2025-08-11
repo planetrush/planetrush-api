@@ -1,8 +1,8 @@
-package com.planetrush.planetrush.infra.s3;
+package com.planetrush.planetrush.aws.service;
 
 import org.springframework.web.multipart.MultipartFile;
 
-import com.planetrush.planetrush.infra.s3.dto.FileMetaInfo;
+import com.planetrush.planetrush.aws.service.dto.FileMetaInfo;
 
 public interface S3ImageService {
 

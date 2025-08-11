@@ -1,4 +1,4 @@
-package com.planetrush.planetrush.core.config.web;
+package com.planetrush.planetrush.core.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;

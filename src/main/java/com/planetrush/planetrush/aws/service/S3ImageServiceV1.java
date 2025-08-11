@@ -1,4 +1,4 @@
-package com.planetrush.planetrush.infra.s3;
+package com.planetrush.planetrush.aws.service;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -12,8 +12,8 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.planetrush.planetrush.infra.s3.dto.FileMetaInfo;
-import com.planetrush.planetrush.infra.s3.exception.S3Exception;
+import com.planetrush.planetrush.aws.exception.S3Exception;
+import com.planetrush.planetrush.aws.service.dto.FileMetaInfo;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,7 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RequiredArgsConstructor
 @Service
-public class S3ImageServiceImpl implements S3ImageService {
+public class S3ImageServiceV1 implements S3ImageService {
 
 	private final AmazonS3 amazonS3;
 	@Value("${cloud.aws.s3.bucket}")
