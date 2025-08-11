@@ -13,6 +13,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import com.planetrush.planetrush.aws.service.dto.ImageType;
+
 class ImageTypeTest {
 
 	@DisplayName("지정되지 않은 코드로 presigned url 발급을 시도하면 예외를 던진다")
