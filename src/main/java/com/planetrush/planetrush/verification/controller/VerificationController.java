@@ -24,10 +24,11 @@ public class VerificationController {
 	private final VerificationService verificationService;
 
 	/**
-	 * 챌린지 인증
-	 * @param verificationImg 인증 사진
+	 * 사진 유사도 검사를 통해 미션을 인증합니다.
+	 *
 	 * @param planetId 행성의 고유 id
-	 * @return 인증 여부 및 유사도를 담은 ResponseEntity
+	 * @param req 인증 사진 주소
+	 * @return
 	 */
 	@RequireJwtToken
 	@PostMapping("/verify/planets/{planet-id}")
