@@ -20,5 +20,6 @@ public class RegisterPlanetReq {
 	private int maxParticipants;
 	private String authCond;
 	private String planetImgUrl;
+	private String standardVerificationImgUrl;
 
 }

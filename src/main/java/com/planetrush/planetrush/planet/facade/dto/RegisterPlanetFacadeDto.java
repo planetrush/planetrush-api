@@ -23,5 +23,6 @@ public class RegisterPlanetFacadeDto {
 	private String authCond;
 	private Long memberId;
 	private String planetImgUrl;
+	private String standardVerificationImgUrl;
 
 }

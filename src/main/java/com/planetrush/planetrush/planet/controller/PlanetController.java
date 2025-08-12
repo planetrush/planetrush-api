@@ -7,11 +7,10 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
 
 import com.planetrush.planetrush.core.aop.annotation.RequireJwtToken;
 import com.planetrush.planetrush.core.aop.member.MemberContext;
@@ -51,17 +50,12 @@ public class PlanetController {
 
 	/**
 	 * 행성을 생성합니다.
-	 * @param customPlanetImg 기본 행성 이미지
-	 * @param stdVerificationImg 인증 대표 이미지
-	 * @param req 행성 내용
-	 * @return ResponseEntity
+	 * @param req 행성 등록에 필요한 데이터
+	 * @return
 	 */
 	@RequireJwtToken
 	@PostMapping
-	public ResponseEntity<BaseResponse<?>> registerPlanet(
-		@RequestPart(name = "customPlanetImg", required = false) MultipartFile customPlanetImg,
-		@RequestPart(name = "stdVerificationImg") MultipartFile stdVerificationImg,
-		@RequestPart(name = "req") RegisterPlanetReq req) {
+	public ResponseEntity<BaseResponse<Void>> registerPlanet(@RequestBody RegisterPlanetReq req) {
 		Long memberId = MemberContext.getMemberId();
 		registerPlanetFacade.registerPlanet(RegisterPlanetFacadeDto.builder()
 			.name(req.getName())
@@ -73,7 +67,8 @@ public class PlanetController {
 			.authCond(req.getAuthCond())
 			.memberId(memberId)
 			.planetImgUrl(req.getPlanetImgUrl())
-			.build(), customPlanetImg, stdVerificationImg);
+			.standardVerificationImgUrl(req.getStandardVerificationImgUrl())
+			.build());
 		return ResponseEntity.ok(BaseResponse.ofSuccess());
 	}
 
