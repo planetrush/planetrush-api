@@ -17,8 +17,6 @@ import com.planetrush.planetrush.core.aop.member.MemberContext;
 import com.planetrush.planetrush.core.template.response.BaseResponse;
 import com.planetrush.planetrush.planet.controller.request.RegisterPlanetReq;
 import com.planetrush.planetrush.planet.controller.response.SearchPlanetRes;
-import com.planetrush.planetrush.planet.facade.RegisterPlanetFacade;
-import com.planetrush.planetrush.planet.facade.dto.RegisterPlanetFacadeDto;
 import com.planetrush.planetrush.planet.service.PlanetService;
 import com.planetrush.planetrush.planet.service.dto.GetDefaultPlanetImgDto;
 import com.planetrush.planetrush.planet.service.dto.GetMainPlanetListDto;
@@ -26,6 +24,7 @@ import com.planetrush.planetrush.planet.service.dto.GetMyPlanetListDto;
 import com.planetrush.planetrush.planet.service.dto.OngoingPlanetDto;
 import com.planetrush.planetrush.planet.service.dto.PlanetDetailDto;
 import com.planetrush.planetrush.planet.service.dto.PlanetSubscriptionDto;
+import com.planetrush.planetrush.planet.service.dto.RegisterPlanetDto;
 import com.planetrush.planetrush.planet.service.dto.SearchCond;
 
 import lombok.RequiredArgsConstructor;
@@ -36,8 +35,6 @@ import lombok.RequiredArgsConstructor;
 public class PlanetController {
 
 	private final PlanetService planetService;
-
-	private final RegisterPlanetFacade registerPlanetFacade;
 
 	/**
 	 * 모든 기본 행성 이미지 URL을 불러옵니다.
@@ -57,7 +54,7 @@ public class PlanetController {
 	@PostMapping
 	public ResponseEntity<BaseResponse<Void>> registerPlanet(@RequestBody RegisterPlanetReq req) {
 		Long memberId = MemberContext.getMemberId();
-		registerPlanetFacade.registerPlanet(RegisterPlanetFacadeDto.builder()
+		planetService.registerPlanet(RegisterPlanetDto.builder()
 			.name(req.getName())
 			.content(req.getContent())
 			.category(req.getCategory())
