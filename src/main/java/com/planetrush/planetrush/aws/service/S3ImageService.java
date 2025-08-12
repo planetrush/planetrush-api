@@ -4,6 +4,11 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.planetrush.planetrush.aws.service.dto.FileMetaInfo;
 
+/**
+ * @deprecated presigned url을 사용하여 이미지 업로드를 진행합니다.
+ * {@link com.planetrush.planetrush.aws.service.S3ImageServiceV2}를 사용하세요.
+ */
+@Deprecated
 public interface S3ImageService {
 
 	/**
