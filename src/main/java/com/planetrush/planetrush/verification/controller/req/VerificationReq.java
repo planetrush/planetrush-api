@@ -1,4 +1,4 @@
-package com.planetrush.planetrush.verification.event;
+package com.planetrush.planetrush.verification.controller.req;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -10,11 +10,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class SaveVerificationResultEvent {
+public class VerificationReq {
 
-	private boolean verified;
-	private double similarityScore;
 	private String verificationImgUrl;
-	private Long planetId;
-	private Long memberId;
 }

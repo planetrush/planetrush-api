@@ -10,7 +10,7 @@ import lombok.Getter;
 public class VerificationDto {
 
 	private String standardImgUrl;
-	private String userImgUrl;
+	private String verificationImgUrl;
 	private Long planetId;
 	private Long memberId;
 
