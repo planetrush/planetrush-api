@@ -59,23 +59,24 @@ public class VerificationServiceImpl implements VerificationService {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void verifyTodayChallenge(Long memberId, Long planetId, String userImgUrl) {
-		Member member = memberRepository.findById(memberId)
-			.orElseThrow(() -> new MemberNotFoundException("Member not found with ID: " + memberId));
-		Planet planet = planetRepository.findById(planetId)
-			.orElseThrow(() -> new PlanetNotFoundException("Planet not found with ID: " + planetId));
+	public void verifyTodayChallenge(VerificationDto dto) {
+		Member member = memberRepository.findById(dto.getMemberId())
+			.orElseThrow(() -> new MemberNotFoundException("Member not found with ID: " + dto.getMemberId()));
+		Planet planet = planetRepository.findById(dto.getPlanetId())
+			.orElseThrow(() -> new PlanetNotFoundException("Planet not found with ID: " + dto.getPlanetId()));
 
 		VerificationRecord verificationRecord = verificationRecordRepositoryCustom.findTodayRecord(member, planet);
 		if (verificationRecord != null) {
-			throw new AlreadyVerifiedException("Member: " + memberId + ", Planet : " + planetId + " already verified today");
+			throw new AlreadyVerifiedException(
+				"Member: " + member.getId() + ", Planet : " + planet.getId() + " already verified today");
 		}
 
 		String standardImgUrl = planet.getStandardVerificationImg();
 		asyncVerifyProcessor.initiateSimilarityCheck(VerificationDto.builder()
 			.standardImgUrl(standardImgUrl)
-			.userImgUrl(userImgUrl)
-			.memberId(memberId)
-			.planetId(planetId)
+			.verificationImgUrl(dto.getVerificationImgUrl())
+			.memberId(dto.getMemberId())
+			.planetId(dto.getPlanetId())
 			.build());
 	}
 
@@ -95,7 +96,7 @@ public class VerificationServiceImpl implements VerificationService {
 			.planet(planet)
 			.member(member)
 			.similarityScore(event.getSimilarityScore())
-			.imgUrl(event.getUserImgUrl())
+			.imgUrl(event.getVerificationImgUrl())
 			.build());
 	}
 }

@@ -1,6 +1,7 @@
 package com.planetrush.planetrush.verification.service;
 
 import com.planetrush.planetrush.verification.event.SaveVerificationResultEvent;
+import com.planetrush.planetrush.verification.service.dto.VerificationDto;
 
 public interface VerificationService {
 
@@ -25,5 +26,5 @@ public interface VerificationService {
 	 */
 	boolean getTodayRecord(Long memberId, Long planetId);
 
-	void verifyTodayChallenge(Long memberId, Long planetId, String targetImgUrl);
+	void verifyTodayChallenge(VerificationDto dto);
 }

@@ -21,11 +21,11 @@ public class AsyncVerificationProcessor {
 
 	@Async
 	public void initiateSimilarityCheck(VerificationDto dto) {
-		FlaskResponseDto res = flaskApiClient.verifyChallengeImg(dto.getStandardImgUrl(), dto.getUserImgUrl());
+		FlaskResponseDto res = flaskApiClient.verifyChallengeImg(dto.getStandardImgUrl(), dto.getVerificationImgUrl());
 		eventPublisher.publishEvent(SaveVerificationResultEvent.builder()
 			.verified(res.isVerified())
 			.similarityScore(res.getSimilarityScore())
-			.userImgUrl(dto.getUserImgUrl())
+			.verificationImgUrl(dto.getVerificationImgUrl())
 			.memberId(dto.getMemberId())
 			.planetId(dto.getPlanetId())
 			.build());
