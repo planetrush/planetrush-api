@@ -4,8 +4,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +19,7 @@ import com.planetrush.planetrush.planet.domain.Category;
 import com.planetrush.planetrush.planet.domain.Planet;
 import com.planetrush.planetrush.planet.domain.Resident;
 import com.planetrush.planetrush.planet.domain.image.DefaultPlanetImg;
+import com.planetrush.planetrush.planet.exception.DuplicatedRegisterResidentRequestException;
 import com.planetrush.planetrush.planet.exception.InvalidStartDateException;
 import com.planetrush.planetrush.planet.exception.PlanetNotFoundException;
 import com.planetrush.planetrush.planet.exception.ResidentAlreadyExistsException;
@@ -47,6 +51,8 @@ import lombok.extern.slf4j.Slf4j;
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class PlanetServiceImpl implements PlanetService {
+
+	private final RedisTemplate redisTemplate;
 
 	private final MemberRepository memberRepository;
 	private final PlanetRepository planetRepository;
@@ -304,6 +310,15 @@ public class PlanetServiceImpl implements PlanetService {
 			.orElseThrow(() -> new MemberNotFoundException("Member not found with ID: " + dto.getMemberId()));
 		Planet planet = planetRepository.findByIdForUpdate(dto.getPlanetId())
 			.orElseThrow(() -> new PlanetNotFoundException("Planet not found with ID: " + dto.getPlanetId()));
+		ValueOperations ops = redisTemplate.opsForValue();
+		Boolean isFirstRequest = ops.setIfAbsent(
+			"idemp:register-resident:" + member.getId() + ":" + planet.getId(),
+			"true", 10,
+			TimeUnit.SECONDS);
+		if (Boolean.FALSE.equals(isFirstRequest)) {
+			log.error("[REGISTER_RESIDENT] 중복 요청 발생, 회원={}, 행성={}", member.getId(), planet.getId());
+			throw new DuplicatedRegisterResidentRequestException();
+		}
 		if(residentRepositoryCustom.getReadyAndInProgressResidents(member) >= 9) {
 			throw new ResidentOverflowException("resident count overflow");
 		}
