@@ -4,8 +4,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +19,8 @@ import com.planetrush.planetrush.planet.domain.Category;
 import com.planetrush.planetrush.planet.domain.Planet;
 import com.planetrush.planetrush.planet.domain.Resident;
 import com.planetrush.planetrush.planet.domain.image.DefaultPlanetImg;
+import com.planetrush.planetrush.planet.exception.DuplicatedDeleteResidentRequestException;
+import com.planetrush.planetrush.planet.exception.DuplicatedRegisterResidentRequestException;
 import com.planetrush.planetrush.planet.exception.InvalidStartDateException;
 import com.planetrush.planetrush.planet.exception.PlanetNotFoundException;
 import com.planetrush.planetrush.planet.exception.ResidentAlreadyExistsException;
@@ -47,6 +52,8 @@ import lombok.extern.slf4j.Slf4j;
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class PlanetServiceImpl implements PlanetService {
+
+	private final RedisTemplate redisTemplate;
 
 	private final MemberRepository memberRepository;
 	private final PlanetRepository planetRepository;
@@ -304,6 +311,15 @@ public class PlanetServiceImpl implements PlanetService {
 			.orElseThrow(() -> new MemberNotFoundException("Member not found with ID: " + dto.getMemberId()));
 		Planet planet = planetRepository.findByIdForUpdate(dto.getPlanetId())
 			.orElseThrow(() -> new PlanetNotFoundException("Planet not found with ID: " + dto.getPlanetId()));
+		ValueOperations ops = redisTemplate.opsForValue();
+		Boolean isFirstRequest = ops.setIfAbsent(
+			"idempotent:register-resident:" + "member:" + member.getId() + "planet:" + planet.getId(),
+			"true", 10,
+			TimeUnit.SECONDS);
+		if (Boolean.FALSE.equals(isFirstRequest)) {
+			log.error("[IDEMPOTENT] 행성 가입 중복 요청 발생, 회원={}, 행성={}", member.getId(), planet.getId());
+			throw new DuplicatedRegisterResidentRequestException();
+		}
 		if(residentRepositoryCustom.getReadyAndInProgressResidents(member) >= 9) {
 			throw new ResidentOverflowException("resident count overflow");
 		}
@@ -324,11 +340,22 @@ public class PlanetServiceImpl implements PlanetService {
 	@Transactional
 	@Override
 	public void deleteResident(PlanetSubscriptionDto dto) {
-		Resident resident = residentRepository.findByMemberIdAndPlanetId(dto.getMemberId(), dto.getPlanetId())
-			.orElseThrow(() -> new ResidentNotFoundException(
-				"Resident not found member id: " + dto.getMemberId() + " and planet id: " + dto.getPlanetId()));
+		Member member = memberRepository.findById(dto.getMemberId())
+			.orElseThrow(() -> new MemberNotFoundException("Member not found with ID: " + dto.getMemberId()));
 		Planet planet = planetRepository.findByIdForUpdate(dto.getPlanetId())
 			.orElseThrow(() -> new PlanetNotFoundException("Planet not found with ID: " + dto.getPlanetId()));
+		ValueOperations ops = redisTemplate.opsForValue();
+		Boolean isFirstRequest = ops.setIfAbsent(
+			"idempotent:delete-resident:" + "member:" + member.getId() + "planet:" + planet.getId(),
+			"true", 10,
+			TimeUnit.SECONDS);
+		if (Boolean.FALSE.equals(isFirstRequest)) {
+			log.error("[IDEMPOTENT] 행성 탈퇴 중복 요청 발생, 회원={}, 행성={}", member.getId(), planet.getId());
+			throw new DuplicatedDeleteResidentRequestException();
+		}
+		Resident resident = residentRepository.findByMemberIdAndPlanetId(member.getId(), planet.getId())
+			.orElseThrow(() -> new ResidentNotFoundException(
+				"Resident not found member id: " + member.getId() + " and planet id: " + planet.getId()));
 		planet.participantLeave();
 		residentRepository.delete(resident);
 	}

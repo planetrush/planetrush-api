@@ -3,10 +3,13 @@ package com.planetrush.planetrush.planet;
 import static org.assertj.core.api.Assertions.*;
 
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.IntStream;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,33 +28,21 @@ import com.planetrush.planetrush.planet.domain.Planet;
 import com.planetrush.planetrush.planet.domain.PlanetStatus;
 import com.planetrush.planetrush.planet.domain.Resident;
 import com.planetrush.planetrush.planet.exception.PlanetDestroyedException;
-import com.planetrush.planetrush.planet.repository.DefaultPlanetImgRepository;
 import com.planetrush.planetrush.planet.repository.PlanetRepository;
 import com.planetrush.planetrush.planet.repository.ResidentRepository;
-import com.planetrush.planetrush.planet.repository.custom.PlanetRepositoryCustom;
-import com.planetrush.planetrush.planet.repository.custom.ResidentRepositoryCustom;
 import com.planetrush.planetrush.planet.service.PlanetServiceImpl;
 import com.planetrush.planetrush.planet.service.dto.PlanetSubscriptionDto;
-import com.planetrush.planetrush.verification.repository.custom.VerificationRecordRepositoryCustom;
 
 public class PlanetIntegrationTest extends IntegrationTest {
 
 	@Autowired
-	private PlanetServiceImpl planetService;
+	PlanetServiceImpl planetService;
 	@Autowired
-	private MemberRepository memberRepository;
+	MemberRepository memberRepository;
 	@Autowired
-	private PlanetRepository planetRepository;
+	PlanetRepository planetRepository;
 	@Autowired
-	private ResidentRepository residentRepository;
-	@Autowired
-	private DefaultPlanetImgRepository defaultPlanetImgRepository;
-	@Autowired
-	private PlanetRepositoryCustom planetRepositoryCustom;
-	@Autowired
-	private ResidentRepositoryCustom residentRepositoryCustom;
-	@Autowired
-	private VerificationRecordRepositoryCustom verificationRecordRepositoryCustom;
+	ResidentRepository residentRepository;
 
 	@BeforeEach
 	void setUp() {
@@ -72,9 +63,9 @@ public class PlanetIntegrationTest extends IntegrationTest {
 		memberRepository.deleteAll();
 	}
 
-	@DisplayName("가입이 탈퇴보다 먼저 요청될 경우 한 명의 거주자만 남는다.")
+	@DisplayName("가입 및 탈퇴 요청의 순서가 보장된다.")
 	@RepeatedTest(100)
-	void should_() throws InterruptedException {
+	void should_guarantee_order_between_register_and_delete_requests() throws InterruptedException {
 		// GIVEN
 		List<Member> members = memberRepository.findAll();
 		Member member1 = members.get(0);
@@ -173,9 +164,9 @@ public class PlanetIntegrationTest extends IntegrationTest {
 		assertThat(planet.getStatus()).isEqualTo(PlanetStatus.READY);
 	}
 
-	@DisplayName("행성 탈퇴가 가입보다 먼저 요청될 경우 한 명의 거주자만 남는다.")
+	@DisplayName("행성 탈퇴가 가입보다 먼저 요청될 경우 거주자는 0명이고 행성은 파괴된다.")
 	@Test
-	void register_and_delete() throws InterruptedException {
+	void should_destroy_planet_when_delete_before_register() {
 		// GIVEN
 		List<Member> members = memberRepository.findAll();
 		Member member1 = members.get(0);
@@ -204,5 +195,97 @@ public class PlanetIntegrationTest extends IntegrationTest {
 			.isInstanceOf(PlanetDestroyedException.class);
 		assertThat(planet.getCurrentParticipants()).isEqualTo(0);
 		assertThat(planet.getStatus()).isEqualTo(PlanetStatus.DESTROYED);
+	}
+
+	@DisplayName("10초 이내로 중복된 행성 가입 요청은 멱등성을 보장한다.")
+	@Test
+	void should_ensure_idempotency_when_duplicate_register_resident_within_ten_seconds() {
+		// GIVEN
+		List<Member> members = memberRepository.findAll();
+		Member member = members.get(1);
+
+		List<Planet> planets = planetRepository.findAll();
+		Planet planet = planets.get(0);
+
+		PlanetSubscriptionDto registerDto = PlanetSubscriptionDto.builder()
+			.planetId(planet.getId())
+			.memberId(member.getId())
+			.build();
+
+		// WHEN
+		int loop = 10;
+		ExecutorService executor = Executors.newFixedThreadPool(loop);
+		CountDownLatch startLatch = new CountDownLatch(1);
+		Callable<Void> task = () -> {
+			startLatch.await();
+			planetService.registerResident(registerDto);
+			return null;
+		};
+
+		List<Future<Void>> futures = IntStream.range(0, loop)
+			.mapToObj(i -> executor.submit(task))
+			.toList();
+		startLatch.countDown();
+
+		int successCnt = 0;
+		int failedCnt = 0;
+		for (Future<Void> future : futures) {
+			try {
+				future.get();
+				successCnt++;
+			} catch (Exception e) {
+				failedCnt++;
+			}
+		}
+
+		// THEN
+		assertThat(successCnt).isEqualTo(1);
+		assertThat(failedCnt).isEqualTo(loop - 1);
+	}
+
+	@DisplayName("10초 이내로 중복된 행성 탈퇴 요청은 멱등성을 보장한다.")
+	@Test
+	void should_ensure_idempotency_when_duplicate_delete_resident_within_ten_seconds() {
+		// GIVEN
+		List<Member> members = memberRepository.findAll();
+		Member member = members.get(0);
+
+		List<Planet> planets = planetRepository.findAll();
+		Planet planet = planets.get(0);
+
+		PlanetSubscriptionDto deleteDto = PlanetSubscriptionDto.builder()
+			.planetId(planet.getId())
+			.memberId(member.getId())
+			.build();
+
+		// WHEN
+		int loop = 10;
+		ExecutorService executor = Executors.newFixedThreadPool(loop);
+		CountDownLatch startLatch = new CountDownLatch(1);
+		Callable<Void> task = () -> {
+			startLatch.await();
+			planetService.deleteResident(deleteDto);
+			return null;
+		};
+
+		List<Future<Void>> futures = IntStream.range(0, loop)
+			.mapToObj(i -> executor.submit(task))
+			.toList();
+		startLatch.countDown();
+
+		int successCnt = 0;
+		int failedCnt = 0;
+		for (Future<Void> future : futures) {
+			try {
+				future.get();
+				successCnt++;
+			} catch (Exception e) {
+				failedCnt++;
+			}
+		}
+
+		// THEN
+		assertThat(successCnt).isEqualTo(1);
+		assertThat(failedCnt).isEqualTo(loop - 1);
 	}
 }
