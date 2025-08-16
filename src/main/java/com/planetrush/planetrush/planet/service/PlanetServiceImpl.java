@@ -19,6 +19,7 @@ import com.planetrush.planetrush.planet.domain.Category;
 import com.planetrush.planetrush.planet.domain.Planet;
 import com.planetrush.planetrush.planet.domain.Resident;
 import com.planetrush.planetrush.planet.domain.image.DefaultPlanetImg;
+import com.planetrush.planetrush.planet.exception.DuplicatedDeleteResidentRequestException;
 import com.planetrush.planetrush.planet.exception.DuplicatedRegisterResidentRequestException;
 import com.planetrush.planetrush.planet.exception.InvalidStartDateException;
 import com.planetrush.planetrush.planet.exception.PlanetNotFoundException;
@@ -312,11 +313,11 @@ public class PlanetServiceImpl implements PlanetService {
 			.orElseThrow(() -> new PlanetNotFoundException("Planet not found with ID: " + dto.getPlanetId()));
 		ValueOperations ops = redisTemplate.opsForValue();
 		Boolean isFirstRequest = ops.setIfAbsent(
-			"idemp:register-resident:" + member.getId() + ":" + planet.getId(),
+			"idempotent:register-resident:" + "member:" + member.getId() + "planet:" + planet.getId(),
 			"true", 10,
 			TimeUnit.SECONDS);
 		if (Boolean.FALSE.equals(isFirstRequest)) {
-			log.error("[REGISTER_RESIDENT] 중복 요청 발생, 회원={}, 행성={}", member.getId(), planet.getId());
+			log.error("[IDEMPOTENT] 행성 가입 중복 요청 발생, 회원={}, 행성={}", member.getId(), planet.getId());
 			throw new DuplicatedRegisterResidentRequestException();
 		}
 		if(residentRepositoryCustom.getReadyAndInProgressResidents(member) >= 9) {
@@ -339,11 +340,22 @@ public class PlanetServiceImpl implements PlanetService {
 	@Transactional
 	@Override
 	public void deleteResident(PlanetSubscriptionDto dto) {
-		Resident resident = residentRepository.findByMemberIdAndPlanetId(dto.getMemberId(), dto.getPlanetId())
-			.orElseThrow(() -> new ResidentNotFoundException(
-				"Resident not found member id: " + dto.getMemberId() + " and planet id: " + dto.getPlanetId()));
+		Member member = memberRepository.findById(dto.getMemberId())
+			.orElseThrow(() -> new MemberNotFoundException("Member not found with ID: " + dto.getMemberId()));
 		Planet planet = planetRepository.findByIdForUpdate(dto.getPlanetId())
 			.orElseThrow(() -> new PlanetNotFoundException("Planet not found with ID: " + dto.getPlanetId()));
+		ValueOperations ops = redisTemplate.opsForValue();
+		Boolean isFirstRequest = ops.setIfAbsent(
+			"idempotent:delete-resident:" + "member:" + member.getId() + "planet:" + planet.getId(),
+			"true", 10,
+			TimeUnit.SECONDS);
+		if (Boolean.FALSE.equals(isFirstRequest)) {
+			log.error("[IDEMPOTENT] 행성 탈퇴 중복 요청 발생, 회원={}, 행성={}", member.getId(), planet.getId());
+			throw new DuplicatedDeleteResidentRequestException();
+		}
+		Resident resident = residentRepository.findByMemberIdAndPlanetId(member.getId(), planet.getId())
+			.orElseThrow(() -> new ResidentNotFoundException(
+				"Resident not found member id: " + member.getId() + " and planet id: " + planet.getId()));
 		planet.participantLeave();
 		residentRepository.delete(resident);
 	}
