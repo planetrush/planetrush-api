@@ -327,7 +327,7 @@ public class PlanetServiceImpl implements PlanetService {
 		Resident resident = residentRepository.findByMemberIdAndPlanetId(dto.getMemberId(), dto.getPlanetId())
 			.orElseThrow(() -> new ResidentNotFoundException(
 				"Resident not found member id: " + dto.getMemberId() + " and planet id: " + dto.getPlanetId()));
-		Planet planet = planetRepository.findById(dto.getPlanetId())
+		Planet planet = planetRepository.findByIdForUpdate(dto.getPlanetId())
 			.orElseThrow(() -> new PlanetNotFoundException("Planet not found with ID: " + dto.getPlanetId()));
 		planet.participantLeave();
 		residentRepository.delete(resident);
