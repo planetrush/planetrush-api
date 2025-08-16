@@ -242,4 +242,50 @@ public class PlanetIntegrationTest extends IntegrationTest {
 		assertThat(successCnt).isEqualTo(1);
 		assertThat(failedCnt).isEqualTo(loop - 1);
 	}
+
+	@DisplayName("10초 이내로 중복된 행성 탈퇴 요청은 멱등성을 보장한다.")
+	@Test
+	void should_ensure_idempotency_when_duplicate_delete_resident_within_ten_seconds() {
+		// GIVEN
+		List<Member> members = memberRepository.findAll();
+		Member member = members.get(0);
+
+		List<Planet> planets = planetRepository.findAll();
+		Planet planet = planets.get(0);
+
+		PlanetSubscriptionDto deleteDto = PlanetSubscriptionDto.builder()
+			.planetId(planet.getId())
+			.memberId(member.getId())
+			.build();
+
+		// WHEN
+		int loop = 10;
+		ExecutorService executor = Executors.newFixedThreadPool(loop);
+		CountDownLatch startLatch = new CountDownLatch(1);
+		Callable<Void> task = () -> {
+			startLatch.await();
+			planetService.deleteResident(deleteDto);
+			return null;
+		};
+
+		List<Future<Void>> futures = IntStream.range(0, loop)
+			.mapToObj(i -> executor.submit(task))
+			.toList();
+		startLatch.countDown();
+
+		int successCnt = 0;
+		int failedCnt = 0;
+		for (Future<Void> future : futures) {
+			try {
+				future.get();
+				successCnt++;
+			} catch (Exception e) {
+				failedCnt++;
+			}
+		}
+
+		// THEN
+		assertThat(successCnt).isEqualTo(1);
+		assertThat(failedCnt).isEqualTo(loop - 1);
+	}
 }
