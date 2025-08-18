@@ -3,6 +3,7 @@ package com.planetrush.planetrush.member.service;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,7 +54,7 @@ public class MemberServiceImpl implements MemberService {
 	 * <p>이 메서드는 반환값을 캐싱하여 관리합니다.</p>
 	 * <p>캐시 미스가 발생하는 경우에만 플라스크 서버로 API 요청을 전송하여 새로운 데이터로 캐시에 저장합니다.</p>
 	 */
-	// TODO: 카페인 캐시를 이용하도록 변경
+	@Cacheable(cacheNames = "challengeProgressAvg", key = "#memberId")
 	@Override
 	public GetMyProgressAvgDto getMyProgressAvgPer(Long memberId) {
 		Member member = memberRepository.findById(memberId)
