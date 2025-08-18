@@ -24,7 +24,7 @@ public class AppConfig {
 
 	@Bean
 	public CacheManager cacheManager() {
-		CaffeineCacheManager cacheManager = new CaffeineCacheManager("challengeProgressRate");
+		CaffeineCacheManager cacheManager = new CaffeineCacheManager("challengeProgressAvg");
 		cacheManager.setCaffeine(
 			Caffeine.newBuilder().expireAfterWrite(24, TimeUnit.HOURS).recordStats()
 		);
