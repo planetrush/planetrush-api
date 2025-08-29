@@ -1,5 +1,7 @@
 package com.planetrush.planetrush.planet.service;
 
+import static com.planetrush.planetrush.planet.service.PlanetPolicy.*;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -21,11 +23,8 @@ import com.planetrush.planetrush.planet.domain.Resident;
 import com.planetrush.planetrush.planet.domain.image.DefaultPlanetImg;
 import com.planetrush.planetrush.planet.exception.DuplicatedDeleteResidentRequestException;
 import com.planetrush.planetrush.planet.exception.DuplicatedRegisterResidentRequestException;
-import com.planetrush.planetrush.planet.exception.InvalidStartDateException;
 import com.planetrush.planetrush.planet.exception.PlanetNotFoundException;
-import com.planetrush.planetrush.planet.exception.ResidentAlreadyExistsException;
 import com.planetrush.planetrush.planet.exception.ResidentNotFoundException;
-import com.planetrush.planetrush.planet.exception.ResidentOverflowException;
 import com.planetrush.planetrush.planet.repository.DefaultPlanetImgRepository;
 import com.planetrush.planetrush.planet.repository.PlanetRepository;
 import com.planetrush.planetrush.planet.repository.ResidentRepository;
@@ -320,13 +319,8 @@ public class PlanetServiceImpl implements PlanetService {
 			log.error("[IDEMPOTENT] 행성 가입 중복 요청 발생, 회원={}, 행성={}", member.getId(), planet.getId());
 			throw new DuplicatedRegisterResidentRequestException();
 		}
-		if(residentRepositoryCustom.getReadyAndInProgressResidents(member) >= 9) {
-			throw new ResidentOverflowException("resident count overflow");
-		}
-		residentRepository.findByMemberIdAndPlanetId(member.getId(), planet.getId())
-			.ifPresent(resident -> {
-				throw new ResidentAlreadyExistsException("resident already exists: " + resident.getId());
-			});
+		validateResidentLimit(member, residentRepositoryCustom);
+		validateDuplicateResident(member, planet, residentRepository);
 		planet.addParticipant();
 		residentRepository.save(Resident.isNotCreator(member, planet));
 	}
@@ -368,12 +362,8 @@ public class PlanetServiceImpl implements PlanetService {
 	public void registerPlanet(RegisterPlanetDto dto) {
 		Member member = memberRepository.findById(dto.getMemberId())
 			.orElseThrow(() -> new MemberNotFoundException("Member not found with ID: " + dto.getMemberId()));
-		if(ChronoUnit.DAYS.between(LocalDate.now(), dto.getStartDate()) > 14) {
-			throw new InvalidStartDateException("Start date must be within 14 days from today.");
-		}
-		if(residentRepositoryCustom.getReadyAndInProgressResidents(member) >= 9) {
-			throw new ResidentOverflowException("resident count overflow");
-		}
+		validateStartDateWithinTwoWeeks(dto.getStartDate());
+		validateResidentLimit(member, residentRepositoryCustom);
 		Planet planet = planetRepository.save(Planet.builder()
 			.name(dto.getName())
 			.category(Category.valueOf(dto.getCategory()))
