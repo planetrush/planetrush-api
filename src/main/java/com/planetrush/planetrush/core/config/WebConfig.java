@@ -33,6 +33,6 @@ public class WebConfig implements WebMvcConfigurer {
 	public void addInterceptors(InterceptorRegistry registry) {
 		registry.addInterceptor(jwtInterceptor)
 			.addPathPatterns("/api/**")
-			.excludePathPatterns("/api/v1/members/auth/login/kakao", "/api/v1/members/auth/reissue", "/api/v1/planets/detail/**");
+			.excludePathPatterns("/api/v1/auth/login/kakao", "/api/v1/auth/reissue", "/api/v1/planets/detail/**");
 	}
 }

@@ -6,7 +6,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.planetrush.planetrush.core.jwt.JwtTokenProvider;
 import com.planetrush.planetrush.core.jwt.dto.JwtToken;
-import com.planetrush.planetrush.infra.oauth.dto.KakaoUserInfo;
 import com.planetrush.planetrush.infra.oauth.util.KakaoUtil;
 import com.planetrush.planetrush.member.domain.Member;
 import com.planetrush.planetrush.member.domain.Nickname;
@@ -40,14 +39,16 @@ public class OAuthServiceImpl implements OAuthService {
 	 */
 	@Override
 	public LoginDto kakaoLogin(String accessToken) {
-		KakaoUserInfo kakaoUserInfo = kakaoUtil.getUserInfo(accessToken);
-		String email = kakaoUserInfo.getKakaoAccount().getEmail();
+		// KakaoUserInfo kakaoUserInfo = kakaoUtil.getUserInfo(accessToken);
+		// String email = kakaoUserInfo.getKakaoAccount().getEmail();
+		String email = "test@gmail.com";
 		Member member = memberRepository.findByEmailAndProviderAndStatus(email, Provider.KAKAO, Status.ACTIVE);
 		/* 회원가입 진행 */
 		if (member == null) {
 			member = memberRepository.save(Member.builder()
 				.email(email)
-				.ci(kakaoUserInfo.getId().toString())
+				// .ci(kakaoUserInfo.getId().toString())
+				.ci(accessToken)
 				.nickname(Nickname.getRandomKoreanNickname())
 				.provider(Provider.KAKAO)
 				.status(Status.ACTIVE)
