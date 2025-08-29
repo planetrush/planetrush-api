@@ -29,9 +29,7 @@ public class CacheConfig {
 	@Getter
 	@AllArgsConstructor
 	enum CacheType {
-		CHALLENGE_AVG("challenge-avg", 24, TimeUnit.HOURS),
-		REGISTER_RESIDENT_RESPONSE("register-resident-response", 10, TimeUnit.SECONDS),
-		DELETE_RESIDENT_RESPONSE("delete-resident-response", 10, TimeUnit.SECONDS);
+		CHALLENGE_AVG("challenge-avg", 24, TimeUnit.HOURS);
 
 		final String cacheName;
 		final int duration;
