@@ -16,17 +16,25 @@ import com.planetrush.planetrush.planet.repository.custom.ResidentRepositoryCust
 @Component
 public final class PlanetPolicy {
 
+	private static final int MAX_RESIDENT_LIMIT = 9;
+	private static final int MAX_CHALLENGE_START_OFFSET = 14;
+
 	/**
-	 * 최대 입주 가능 인원을 확인합니다.
+	 * 가입 가능한 최대 챌린지 수를 초과하는지 검사합니다.
+	 * @param member
+	 * @param residentRepositoryCustom
 	 */
 	public static void validateResidentLimit(Member member, ResidentRepositoryCustom residentRepositoryCustom) {
-		if (residentRepositoryCustom.getReadyAndInProgressResidents(member) >= 9) {
+		if (residentRepositoryCustom.getReadyAndInProgressResidents(member) >= MAX_RESIDENT_LIMIT) {
 			throw new ResidentOverflowException("resident count overflow");
 		}
 	}
 
 	/**
 	 * 동일한 행성에 중복 가입을 방지합니다.
+	 * @param member
+	 * @param planet
+	 * @param residentRepository
 	 */
 	public static void validateDuplicateResident(Member member, Planet planet, ResidentRepository residentRepository) {
 		residentRepository.findByMemberIdAndPlanetId(member.getId(), planet.getId())
@@ -35,8 +43,12 @@ public final class PlanetPolicy {
 			});
 	}
 
+	/**
+	 * 2주 이내로 시작하는지 검사합니다.
+	 * @param startDate
+	 */
 	public static void validateStartDateWithinTwoWeeks(LocalDate startDate) {
-		if(ChronoUnit.DAYS.between(LocalDate.now(), startDate) > 14) {
+		if(ChronoUnit.DAYS.between(LocalDate.now(), startDate) > MAX_CHALLENGE_START_OFFSET) {
 			throw new InvalidStartDateException("Start date must be within 14 days from today.");
 		}
 	}
