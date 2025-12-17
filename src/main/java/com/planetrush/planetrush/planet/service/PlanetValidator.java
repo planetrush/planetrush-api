@@ -13,6 +13,7 @@ import com.planetrush.planetrush.planet.exception.ResidentAlreadyExistsException
 import com.planetrush.planetrush.planet.exception.ResidentOverflowException;
 import com.planetrush.planetrush.planet.repository.ResidentRepository;
 import com.planetrush.planetrush.planet.repository.custom.ResidentRepositoryCustom;
+import com.planetrush.planetrush.planet.service.vo.GetMainPlanetListVo;
 
 import lombok.RequiredArgsConstructor;
 
@@ -24,6 +25,9 @@ public class PlanetValidator {
 	private final ResidentRepositoryCustom residentRepositoryCustom;
 	private static final int MAX_RESIDENT_LIMIT = 9;
 	private static final int MAX_CHALLENGE_START_OFFSET = 14;
+
+	private static final int LAST_DAY_FROM_PLANET_START_DAYS = 2;
+	private static final int LAST_DAY_AFTER_VERIFY_DAYS = 3;
 
 	/**
 	 * 가입 가능한 최대 챌린지 수를 초과하는지 검사합니다.
@@ -59,4 +63,26 @@ public class PlanetValidator {
 		}
 	}
 
+	/**
+	 * 마지막 인증 날짜 혹은 행성 시작 날짜와 오늘 날짜를 비교해 결과를 반환합니다.
+	 * @param vo GetMainPlanetListVo
+	 * @return 행성에서 탈퇴 당하기 직전인지 여부
+	 */
+	public boolean checkLastDay(GetMainPlanetListVo vo) {
+		LocalDate today = LocalDate.now();
+		if (vo.getLastVerifyDate() != null) {
+			return isLastDayAfterVerify(vo.getLastVerifyDate().toLocalDate(), today);
+		}
+		return isLastDayFromPlanetStart(vo.getPlanetStartDate(), today);
+	}
+
+	private boolean isLastDayFromPlanetStart(LocalDate planetStartDate, LocalDate today) {
+		long daysPassed = ChronoUnit.DAYS.between(planetStartDate, today);
+		return daysPassed >= LAST_DAY_FROM_PLANET_START_DAYS;
+	}
+
+	private boolean isLastDayAfterVerify(LocalDate lastVerifyDate, LocalDate today) {
+		long daysPassed = ChronoUnit.DAYS.between(lastVerifyDate, today);
+		return daysPassed >= LAST_DAY_AFTER_VERIFY_DAYS;
+	}
 }
