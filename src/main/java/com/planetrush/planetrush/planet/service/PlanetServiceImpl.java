@@ -1,16 +1,11 @@
 package com.planetrush.planetrush.planet.service;
 
-import static com.planetrush.planetrush.planet.service.PlanetPolicy.*;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -52,7 +47,8 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class PlanetServiceImpl implements PlanetService {
 
-	private final RedisTemplate redisTemplate;
+	private final IdempotencyManager idempotencyManager;
+	private final PlanetValidator planetValidator;
 
 	private final MemberRepository memberRepository;
 	private final PlanetRepository planetRepository;
@@ -306,25 +302,20 @@ public class PlanetServiceImpl implements PlanetService {
 	@Transactional
 	@Override
 	public void registerResident(PlanetSubscriptionDto dto) {
+		if (!idempotencyManager.tryRegisterResident(dto.getMemberId(), dto.getPlanetId())) {
+			log.warn("[IDEMPOTENT] 행성 가입 중복 요청, member={}, planet={}", dto.getMemberId(), dto.getPlanetId());
+			throw new DuplicatedRegisterResidentRequestException();
+		}
 		Member member = memberRepository.findById(dto.getMemberId())
 			.orElseThrow(() -> new MemberNotFoundException("Member not found with ID: " + dto.getMemberId()));
 		Planet planet = planetRepository.findByIdForUpdate(dto.getPlanetId())
 			.orElseThrow(() -> new PlanetNotFoundException("Planet not found with ID: " + dto.getPlanetId()));
-		ValueOperations ops = redisTemplate.opsForValue();
-		Boolean isFirstRequest = ops.setIfAbsent(
-			"idempotent:register-resident:" + "member:" + member.getId() + "planet:" + planet.getId(),
-			"true", 10,
-			TimeUnit.SECONDS);
-		if (Boolean.FALSE.equals(isFirstRequest)) {
-			log.error("[IDEMPOTENT] 행성 가입 중복 요청 발생, 회원={}, 행성={}", member.getId(), planet.getId());
-			throw new DuplicatedRegisterResidentRequestException();
-		}
-		validateResidentLimit(member, residentRepositoryCustom);
-		validateDuplicateResident(member, planet, residentRepository);
+		planetValidator.checkMaxResidentLimit(member);
+		planetValidator.checkDuplicatedRegister(member, planet);
 		planet.addParticipant();
 		residentRepository.save(Resident.isNotCreator(member, planet));
 	}
-
+	
 	/**
 	 * {@inheritDoc}
 	 *
@@ -334,19 +325,14 @@ public class PlanetServiceImpl implements PlanetService {
 	@Transactional
 	@Override
 	public void deleteResident(PlanetSubscriptionDto dto) {
+		if (!idempotencyManager.tryDeleteResident(dto.getMemberId(), dto.getPlanetId())) {
+			log.error("[IDEMPOTENT] 행성 탈퇴 중복 요청 발생, 회원={}, 행성={}", dto.getMemberId(), dto.getPlanetId());
+			throw new DuplicatedDeleteResidentRequestException();
+		}
 		Member member = memberRepository.findById(dto.getMemberId())
 			.orElseThrow(() -> new MemberNotFoundException("Member not found with ID: " + dto.getMemberId()));
 		Planet planet = planetRepository.findByIdForUpdate(dto.getPlanetId())
 			.orElseThrow(() -> new PlanetNotFoundException("Planet not found with ID: " + dto.getPlanetId()));
-		ValueOperations ops = redisTemplate.opsForValue();
-		Boolean isFirstRequest = ops.setIfAbsent(
-			"idempotent:delete-resident:" + "member:" + member.getId() + "planet:" + planet.getId(),
-			"true", 10,
-			TimeUnit.SECONDS);
-		if (Boolean.FALSE.equals(isFirstRequest)) {
-			log.error("[IDEMPOTENT] 행성 탈퇴 중복 요청 발생, 회원={}, 행성={}", member.getId(), planet.getId());
-			throw new DuplicatedDeleteResidentRequestException();
-		}
 		Resident resident = residentRepository.findByMemberIdAndPlanetId(member.getId(), planet.getId())
 			.orElseThrow(() -> new ResidentNotFoundException(
 				"Resident not found member id: " + member.getId() + " and planet id: " + planet.getId()));
@@ -362,8 +348,8 @@ public class PlanetServiceImpl implements PlanetService {
 	public void registerPlanet(RegisterPlanetDto dto) {
 		Member member = memberRepository.findById(dto.getMemberId())
 			.orElseThrow(() -> new MemberNotFoundException("Member not found with ID: " + dto.getMemberId()));
-		validateStartDateWithinTwoWeeks(dto.getStartDate());
-		validateResidentLimit(member, residentRepositoryCustom);
+		planetValidator.checkStartDate(dto.getStartDate());
+		planetValidator.checkMaxResidentLimit(member);
 		Planet planet = planetRepository.save(Planet.builder()
 			.name(dto.getName())
 			.category(Category.valueOf(dto.getCategory()))
